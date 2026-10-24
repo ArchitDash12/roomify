@@ -76,6 +76,13 @@ export const generate3DView = async ({ sourceImage }: Generate3DViewParams) => {
     } catch (e: any) {
       console.warn(`Puter txt2img with model ${model} (base64) failed:`, e);
       lastError = e;
+      
+      if (
+        e?.code === "insufficient_funds" ||
+        e?.errorCode === "moderation_flagged"
+      ) {
+        continue;
+      }
       // Also try with full data URI as input_image
       try {
         response = await puter.ai.txt2img(ROOMIFY_RENDER_PROMPT, {
