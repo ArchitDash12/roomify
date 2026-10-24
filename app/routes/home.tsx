@@ -41,7 +41,7 @@ export default function Home() {
 
     navigate(`/visualizer/${newId}`, {
       state: {
-        initialImage: saved.sourceImage,
+        initialImage: base64Image,
         initialRendered: saved.renderedImage || null,
         name,
       },
