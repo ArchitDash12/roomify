@@ -1,35 +1,50 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router";
+import { useLocation, useNavigate, useOutletContext, useParams } from "react-router";
 import { generate3DView } from "../../lib/ai.action";
 import { Box, Download, RefreshCcw, Share, X, AlertCircle } from "lucide-react";
 import { Button } from "../../components/ui/Button";
+import { createProject, getProjectById } from "../../lib/puter.action";
 
 const VisualizerId = () => {
+    const { id } = useParams()
   const navigate = useNavigate();
   const location = useLocation();
-  const { initialImage, initialRender, initialRendered, name } =
-    location.state || {};   
-  const startingRender = initialRender || initialRendered || null;
+  const { userId } = useOutletContext<AuthContext>()
   const hasInitialGenerated = useRef(false);
 
+  const [project, setProject] = useState<DesignItem | null>(null)
+  const [isProjectLoading, setIsProjectLoading] = useState(true)
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentImage, setCurrentImage] = useState<string | null>(
-    startingRender,
-  );
+  const [currentImage, setCurrentImage] = useState<string | null>(null);
 
   const handleBack = () => navigate("/");
 
-  const runGeneration = async () => {
-    if (!initialImage) return;
+  const runGeneration = async (item: DesignItem) => {
+    if (!id || !item.sourceImage) return;
 
     try {
       setIsProcessing(true);
       setError(null);
-      const result = await generate3DView({ sourceImage: initialImage });
+      const result = await generate3DView({ sourceImage: item.sourceImage });
 
       if (result.renderedImage) {
         setCurrentImage(result.renderedImage);
+        const updatedItem = {
+            ...item,
+            renderedImage: result.renderedImage,
+            renderedPath: result.renderedPath,
+            timestamp: Date.now(),
+            ownerId: item.ownerId ?? userId ?? null,
+            isPublic: item.isPublic ?? false,
+        }
+
+        const saved = await createProject({ item: updatedItem, visibility: "private" })
+
+        if(saved){
+            setProject(saved)
+            setCurrentImage(saved.renderedImage || result.renderedImage)
+        }
       } else {
         throw new Error("No rendered image was returned by the AI model.");
       }
@@ -48,22 +63,67 @@ const VisualizerId = () => {
     if (!currentImage) return;
     const a = document.createElement("a");
     a.href = currentImage;
-    a.download = `${name || "roomify-render"}-3d.png`;
+    a.download = `${project?.name || "roomify-render"}-3d.png`;
     a.click();
   };
 
   useEffect(() => {
-    if (!initialImage || hasInitialGenerated.current) return;
+    let isMounted = true;
 
-    if (startingRender) {
-      setCurrentImage(startingRender);
+    const loadProject = async () => {
+      if (!id) {
+        setIsProjectLoading(false);
+        return;
+      }
+
+      setIsProjectLoading(true);
+
+      const fetchedProject = await getProjectById({ id });
+
+      if (!isMounted) return;
+
+      if (fetchedProject) {
+        setProject(fetchedProject);
+        setCurrentImage(fetchedProject?.renderedImage || null);
+      } else if (location.state?.initialImage) {
+        setProject({
+          id,
+          name: location.state.name || `Residence ${id}`,
+          sourceImage: location.state.initialImage,
+          renderedImage: location.state.initialRendered || undefined,
+          timestamp: Date.now(),
+        });
+        setCurrentImage(location.state.initialRendered || null);
+      }
+
+      setIsProjectLoading(false);
+      hasInitialGenerated.current = false;
+    };
+
+    loadProject();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id]);
+
+  useEffect(() => {
+    if (
+      isProjectLoading ||
+      hasInitialGenerated.current ||
+      !project?.sourceImage
+    )
+      return;
+
+    if (project.renderedImage) {
+      setCurrentImage(project.renderedImage);
       hasInitialGenerated.current = true;
       return;
     }
 
     hasInitialGenerated.current = true;
-    runGeneration();
-  }, [initialImage, startingRender]);
+    void runGeneration(project);
+  }, [project, isProjectLoading]);
 
   return (
     <div className="visualizer">
@@ -81,15 +141,15 @@ const VisualizerId = () => {
           <div className="panel-header">
             <div className="panel-meta">
               <p>Project</p>
-              <h2>{name || "Untitled Project"}</h2>
+              <h2>{project?.name || `Residence ${id}`}</h2>
               <p className="note">Created by You</p>
             </div>
             <div className="panel-actions">
               <Button
                 size="sm"
                 variant="outline"
-                onClick={runGeneration}
-                disabled={isProcessing || !initialImage}
+                onClick={() => project && runGeneration(project)}
+                disabled={isProcessing || !project?.sourceImage}
                 className="regenerate"
               >
                 <RefreshCcw
@@ -122,7 +182,7 @@ const VisualizerId = () => {
                 size="sm"
                 variant="outline"
                 className="ml-4 shrink-0 text-xs text-red-700 border-red-300 hover:bg-red-100"
-                onClick={runGeneration}
+                onClick={() => project && runGeneration(project)}
                 disabled={isProcessing}
               >
                 Retry
@@ -135,9 +195,9 @@ const VisualizerId = () => {
               <img src={currentImage} alt="AI Render" className="render-img" />
             ) : (
               <div className="render-placeholder">
-                {initialImage && (
+                {project?.sourceImage && (
                   <img
-                    src={initialImage}
+                    src={project?.sourceImage}
                     alt="Original Floor Plan"
                     className="render-fallback"
                   />
