@@ -143,7 +143,7 @@ roomify/
 │   ├── puter.hosting.ts          # Public hosting and asset distribution logic
 │   └── utils.ts                  # Canvas, base64, URL and string utilities
 ├── public/
-│   ├── demo/
+│   ├── demo-assets/
 │   │   ├── floorplan-2d.jpg      # Sample 2D CAD floor plan blueprint
 │   │   ├── floorplan-3d.jpg      # 3D generated architectural floor plan
 │   │   └── floorplan-3d-canvas.jpg # Aligned aspect-ratio canvas for slider precision

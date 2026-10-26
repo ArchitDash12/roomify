@@ -48,7 +48,7 @@ export default function DemoPage() {
 
   const handleDownload = () => {
     const a = document.createElement("a");
-    a.href = "/demo/floorplan-3d.jpg";
+    a.href = "/demo-assets/floorplan-3d.jpg";
     a.download = "roomify-demo-3d-floorplan.jpg";
     a.click();
   };
@@ -130,13 +130,13 @@ export default function DemoPage() {
               defaultPosition={50}
               itemOne={
                 <ReactCompareSliderImage
-                  src="/demo/floorplan-2d.jpg"
+                  src="/demo-assets/floorplan-2d.jpg"
                   alt="2D Architectural Blueprint"
                 />
               }
               itemTwo={
                 <ReactCompareSliderImage
-                  src="/demo/floorplan-3d-canvas.jpg"
+                  src="/demo-assets/floorplan-3d-canvas.jpg"
                   alt="3D Photorealistic Render"
                 />
               }
