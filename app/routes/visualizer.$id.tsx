@@ -43,6 +43,8 @@ const VisualizerId = () => {
 
   // GSAP entrance animation for visualizer panels
   useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
     const ctx = gsap.context(() => {
       gsap.from(".topbar", {
         opacity: 0,
