@@ -589,6 +589,25 @@
         }
     }
 
+    /* Prevent ghost dragging and image flickering on ReactCompareSlider */
+    [data-rcs="root"] {
+        user-select: none;
+        -webkit-user-select: none;
+        touch-action: pan-y;
+    }
+
+    [data-rcs="root"] img,
+    [data-rcs="image"],
+    [data-rcs="item"] {
+        -webkit-user-drag: none;
+        user-drag: none;
+        pointer-events: none;
+        transition: none !important;
+        transform: translateZ(0);
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+    }
+
     .visualizer-route {
         @apply min-h-screen flex items-center justify-center;
 

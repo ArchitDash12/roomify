@@ -6,13 +6,23 @@ import {
   useParams,
 } from "react-router";
 import { generate3DView } from "../../lib/ai.action";
-import { Box, Download, RefreshCcw, Share, X, AlertCircle } from "lucide-react";
+import {
+  Box,
+  Download,
+  RefreshCcw,
+  Share,
+  X,
+  AlertCircle,
+  Split,
+} from "lucide-react";
 import { Button } from "../../components/ui/Button";
 import { createProject, getProjectById } from "../../lib/puter.action";
 import {
   ReactCompareSlider,
   ReactCompareSliderImage,
+  ReactCompareSliderHandle,
 } from "react-compare-slider";
+import gsap from "gsap";
 
 const VisualizerId = () => {
   const { id } = useParams();
@@ -27,7 +37,33 @@ const VisualizerId = () => {
   const [error, setError] = useState<string | null>(null);
   const [currentImage, setCurrentImage] = useState<string | null>(null);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const handleBack = () => navigate("/");
+
+  // GSAP entrance animation for visualizer panels
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const ctx = gsap.context(() => {
+      gsap.from(".topbar", {
+        opacity: 0,
+        y: -20,
+        duration: 0.6,
+        ease: "power2.out",
+      });
+
+      gsap.from(".visualizer-panel", {
+        opacity: 0,
+        y: 30,
+        stagger: 0.15,
+        duration: 0.8,
+        ease: "power3.out",
+      });
+    }, containerRef);
+
+    return () => ctx.revert();
+  }, []);
 
   const runGeneration = async (item: DesignItem) => {
     if (!id || !item.sourceImage) return;
@@ -138,18 +174,30 @@ const VisualizerId = () => {
   }, [project, isProjectLoading]);
 
   return (
-    <div className="visualizer">
+    <div ref={containerRef} className="visualizer">
       <nav className="topbar">
-        <div className="brand">
+        <div className="brand" onClick={handleBack}>
           <Box className="logo" />
           <span className="name">Roomify</span>
         </div>
-        <Button variant="ghost" size="sm" onClick={handleBack} className="exit">
-          <X className="icon" /> Exit Editor
-        </Button>
+        <div className="flex items-center space-x-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/demo")}
+            className="text-xs font-mono uppercase tracking-wider cursor-pointer"
+          >
+            <Split className="w-3.5 h-3.5 mr-1.5 text-orange-500" />
+            Watch Demo
+          </Button>
+          <Button variant="ghost" size="sm" onClick={handleBack} className="exit cursor-pointer">
+            <X className="icon" /> Exit Editor
+          </Button>
+        </div>
       </nav>
+
       <section className="content">
-        <div className="panel">
+        <div className="panel visualizer-panel">
           <div className="panel-header">
             <div className="panel-meta">
               <p>Project</p>
@@ -162,7 +210,7 @@ const VisualizerId = () => {
                 variant="outline"
                 onClick={() => project && runGeneration(project)}
                 disabled={isProcessing || !project?.sourceImage}
-                className="regenerate"
+                className="regenerate cursor-pointer"
               >
                 <RefreshCcw
                   className={`w-4 h-4 mr-2 ${isProcessing ? "animate-spin" : ""}`}
@@ -172,12 +220,12 @@ const VisualizerId = () => {
               <Button
                 size="sm"
                 onClick={handleExport}
-                className="export"
+                className="export cursor-pointer"
                 disabled={!currentImage}
               >
                 <Download className="w-4 h-4 mr-2" /> Export
               </Button>
-              <Button size="sm" onClick={() => {}} className="share">
+              <Button size="sm" onClick={() => {}} className="share cursor-pointer">
                 <Share className="w-4 h-4 mr-2" />
                 Share
               </Button>
@@ -230,18 +278,18 @@ const VisualizerId = () => {
           </div>
         </div>
 
-        <div className="panel compare">
+        <div className="panel compare visualizer-panel">
           <div className="panel-header">
             <div className="panel-meta">
               <p>Comparison</p>
               <h3>Before and After</h3>
             </div>
-            <div className="hint">Drag to compare</div>
+            <div className="hint text-xs font-mono text-zinc-400">Drag to compare</div>
           </div>
           <div className="compare-stage">
             {project?.sourceImage && currentImage ? (
               <ReactCompareSlider
-                defaultValue={50}
+                defaultPosition={50}
                 style={{ width: "100%", height: "auto" }}
                 itemOne={
                   <ReactCompareSliderImage
@@ -252,9 +300,26 @@ const VisualizerId = () => {
                 }
                 itemTwo={
                   <ReactCompareSliderImage
-                    src={currentImage || project?.renderedImage}
+                    src={currentImage || project?.renderedImage || undefined}
                     alt="after"
                     className="compare-img"
+                  />
+                }
+                handle={
+                  <ReactCompareSliderHandle
+                    buttonStyle={{
+                      backdropFilter: "blur(6px)",
+                      background: "rgba(255, 255, 255, 0.95)",
+                      border: "2px solid #f97316",
+                      boxShadow: "0 0 14px rgba(249, 115, 22, 0.35)",
+                      color: "#f97316",
+                      width: "40px",
+                      height: "40px",
+                    }}
+                    linesStyle={{
+                      width: "2px",
+                      backgroundColor: "#f97316",
+                    }}
                   />
                 }
               />
